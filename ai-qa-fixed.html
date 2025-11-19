@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生财有术 AI问答</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-gradient: linear-gradient(135deg, #00D4AA 0%, #3B82F6 50%, #A855F7 100%);
+            --primary-cyan: #00D4AA;
+            --primary-blue: #3B82F6;
+            --primary-purple: #A855F7;
+            --bg-primary: #FAFBFC;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #1A202C;
+            --text-secondary: #64748B;
+            --text-muted: #94A3B8;
+            --text-link: #3B82F6;
+            --border-light: #E2E8F0;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* 背景装饰 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
+            animation: float 20s ease-in-out infinite;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -50%;
+            left: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 212, 170, 0.08) 0%, transparent 70%);
+            animation: float 20s ease-in-out infinite reverse;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(120deg); }
+            66% { transform: translate(-20px, 20px) rotate(240deg); }
+        }
+        
+        /* 左侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #00D4AA 50%, #3B82F6 75%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .logo-icon-inner {
+            color: #FFD700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .beta-tag {
+            position: absolute;
+            top: -8px;
+            right: 10px;
+            background: #FF6B6B;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            z-index: 10;
+        }
+        
+        .new-chat-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
+        }
+        
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        
+        .history-section {
+            margin-bottom: 24px;
+        }
+        
+        .history-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding: 0 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .history-item {
+            padding: 10px 12px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            background: rgba(0, 212, 170, 0.08);
+        }
+        
+        .history-item.active {
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.15) 0%, rgba(59, 130, 246, 0.15) 50%, rgba(168, 85, 247, 0.15) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .history-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary-gradient);
+            border-radius: 0 3px 3px 0;
+        }
+        
+        .history-title {
+            font-size: 13px;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+        
+        /* 主聊天区域 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            position: relative;
+            z-index: 5;
+        }
+        
+        .chat-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-light);
+            background: white;
+        }
+        
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: var(--bg-primary);
+        }
+        
+        /* 消息样式 */
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            overflow: visible;
+        }
+        
+        .user-bubble {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 12px 18px;
+            border-radius: 18px 18px 4px 18px;
+            font-size: 14px;
+        }
+        
+        /* AI回复样式 */
+        .ai-response {
+            background: white;
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+        
+        .ai-response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            background: #FAFBFC;
+        }
+        
+        .response-time {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .sources-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            font-size: 13px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .sources-btn:hover {
+            background: var(--bg-primary);
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+        
+        .sources-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .ai-text {
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            overflow: visible;
+        }
+        
+        .ai-text p {
+            margin-bottom: 12px;
+        }
+        
+        .ai-text p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .ai-text strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        /* 作者引用标签 */
+        .author-ref {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(0, 212, 170, 0.08);
+            padding: 2px 8px 2px 3px;
+            border-radius: 12px;
+            margin: 0 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            vertical-align: middle;
+        }
+        
+        .author-ref:hover {
+            background: rgba(0, 212, 170, 0.15);
+            transform: translateY(-1px);
+        }
+        
+        .author-avatar {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        
+        .author-name {
+            font-size: 12px;
+            color: var(--primary-cyan);
+            font-weight: 500;
+        }
+        
+        /* 增强的悬浮卡片 */
+        .hover-card {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            padding: 16px;
+            width: 320px;
+            z-index: 1000;
+            display: none;
+            margin-bottom: 6px;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .author-ref:hover .hover-card,
+        .manual-ref:hover .hover-card {
+            display: block;
+        }
+        
+        .hover-card-content {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+        }
+
+        .hover-card-content:hover {
+            opacity: 0.8;
+        }
+
+        .hover-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .hover-card-excerpt {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .hover-card-excerpt mark {
+            background: rgba(255, 212, 0, 0.3);
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+
+        .hover-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hover-card-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .hover-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .hover-card-name {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .hover-card-stats {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .hover-card-follow {
+            padding: 4px 12px;
+            background: transparent;
+            color: var(--primary-blue);
+            border: 1px solid var(--primary-blue);
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .hover-card-follow:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+        
+        /* 航海手册样式 */
+        .manual-ref {
+            background: rgba(59, 130, 246, 0.08);
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px 2px 3px;
+            border-radius: 12px;
+            margin: 0 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            vertical-align: middle;
+        }
+        
+        .manual-ref:hover {
+            background: rgba(59, 130, 246, 0.15);
+            transform: translateY(-1px);
+        }
+        
+        .manual-ref .author-name {
+            color: var(--primary-blue);
+        }
+        
+        .manual-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+            display: inline-block;
+        }
+        
+        .hover-card-manual {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .hover-card-manual-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: white;
+            font-size: 20px;
+        }
+        
+        .hover-card-participants {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        /* AI操作按钮 */
+        .ai-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-light);
+            background: #FAFBFC;
+        }
+        
+        .ai-disclaimer {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .ai-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .ai-action-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 10px;
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .ai-action-btn:hover {
+            background: var(--bg-primary);
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+        }
+        
+        .ai-action-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* 右侧参考资料抽屉 */
+        .reference-drawer {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100%;
+            background: white;
+            border-left: 1px solid var(--border-light);
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.08);
+            transition: right 0.3s ease;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .reference-drawer.open {
+            right: 0;
+        }
+        
+        .drawer-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .drawer-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .drawer-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .drawer-close:hover {
+            background: var(--bg-primary);
+        }
+        
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .reference-item {
+            margin-bottom: 16px;
+            padding: 14px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .reference-item:hover {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .reference-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .reference-meta {
+            display: flex;
+            align-items: center;
+        }
+
+        .reference-author-img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .reference-author-info {
+            flex: 1;
+        }
+
+        .reference-author-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .reference-date {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        
+        .reference-excerpt {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        /* 加载和思考状态 */
+        .thinking-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+        }
+
+        .thinking-stage {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #FAFBFC;
+            transition: all 0.3s ease;
+        }
+
+        .thinking-stage.active {
+            background: #F0F7FF;
+            border-left: 3px solid var(--primary-blue);
+        }
+
+        .thinking-stage.completed {
+            background: #F0FFF4;
+            border-left: 3px solid #10B981;
+        }
+
+        .thinking-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .thinking-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border-light);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .thinking-check {
+            color: #10B981;
+            font-size: 18px;
+        }
+
+        .thinking-text {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .thinking-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 2px 8px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .sources-found {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .sources-found-icon {
+            font-size: 16px;
+        }
+
+        /* 打字机效果 */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid var(--border-light);
+        }
+        
+        .input-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            min-width: 400px;
+            position: relative;
+            background: linear-gradient(135deg, #00D4AA 0%, #3B82F6 50%, #A855F7 100%);
+            border-radius: 24px;
+            padding: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: white;
+            border-radius: 22px;
+            z-index: 1;
+        }
+
+        .input-wrapper:focus-within {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .input-field {
+            flex: 1;
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 14px;
+            color: var(--text-primary);
+            resize: none;
+            position: relative;
+            z-index: 2;
+            padding: 12px 20px;
+        }
+        
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.3);
+        }
+        
+        /* 反馈弹窗 */
+        .feedback-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .feedback-modal.show {
+            display: block;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        
+        .modal-overlay.show {
+            display: block;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+        
+        .modal-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+        
+        .feedback-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .feedback-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feedback-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary-cyan);
+        }
+        
+        .feedback-option label {
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        .feedback-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .modal-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .modal-btn-cancel {
+            background: white;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-light);
+        }
+        
+        .modal-btn-cancel:hover {
+            background: var(--bg-primary);
+        }
+        
+        .modal-btn-submit {
+            background: var(--primary-gradient);
+            color: white;
+        }
+        
+        .modal-btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
+        }
+        
+        .ai-action-btn.liked {
+            background: rgba(0, 212, 170, 0.1);
+            border-color: var(--primary-cyan);
+            color: var(--primary-cyan);
+        }
+        
+        .feedback-success {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .success-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: white;
+            font-size: 24px;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                height: 100%;
+                z-index: 99;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .reference-drawer {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .reference-drawer.open {
+                right: 0;
+            }
+            
+            .input-wrapper {
+                min-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <div class="logo-icon-inner">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.2L12 16.6l-6.3 4.6 2.3-7.2-6-4.6h7.6z"/>
+                            <circle cx="8" cy="8" r="1.5" opacity="0.7"/>
+                            <circle cx="16" cy="8" r="1" opacity="0.5"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="logo-text">生财有术 AI问答助手</div>
+            </div>
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <span class="beta-tag">内测</span>
+                ✨ 开始新对话
+            </button>
+        </div>
+        <div class="history-list" id="historyList">
+            <!-- 历史记录将通过 JavaScript 动态生成 -->
+        </div>
+    </aside>
+    
+    <!-- 主聊天区域 -->
+    <main class="main-content">
+        <header class="chat-header">
+            <h1 class="chat-title" id="chatTitle">新手如何成为盖洛普教练？</h1>
+        </header>
+        
+        <div class="chat-area" id="chatArea">
+            <!-- 聊天内容将动态生成 -->
+        </div>
+
+        <!-- 底部输入区域 -->
+        <div class="input-area" id="bottomInputArea">
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <input type="text" class="input-field" id="questionInput" placeholder="请输入你的问题..." onkeypress="if(event.key==='Enter') sendQuestionFromBottom()">
+                </div>
+                <button class="send-btn" onclick="sendQuestionFromBottom()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 右侧参考资料抽屉 -->
+    <div class="reference-drawer" id="referenceDrawer">
+        <div class="drawer-header">
+            <h2 class="drawer-title" id="drawerTitle">参考来源</h2>
+            <button class="drawer-close" onclick="toggleDrawer()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="drawer-content" id="drawerContent">
+            <!-- 参考资料将动态生成 -->
+        </div>
+    </div>
+    
+    <!-- 反馈弹窗 -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeFeedback()"></div>
+    <div class="feedback-modal" id="feedbackModal">
+        <h3 class="modal-title" id="modalTitle">感谢反馈</h3>
+        <p class="modal-description" id="modalDescription">您的反馈将帮助我们改进AI回答的质量</p>
+        <div class="feedback-options" id="feedbackOptions" style="display: none;">
+            <div class="feedback-option">
+                <input type="checkbox" id="irrelevant" name="feedback">
+                <label for="irrelevant">与问题无关</label>
+            </div>
+            <div class="feedback-option">
+                <input type="checkbox" id="incorrect" name="feedback">
+                <label for="incorrect">信息有误</label>
+            </div>
+            <div class="feedback-option">
+                <input type="checkbox" id="unclear" name="feedback">
+                <label for="unclear">不易理解</label>
+            </div>
+            <div class="feedback-option">
+                <input type="checkbox" id="other" name="feedback">
+                <label for="other">其他原因</label>
+            </div>
+        </div>
+        <textarea class="feedback-textarea" id="feedbackText" placeholder="请详细描述您的问题或建议（选填）" style="display: none;"></textarea>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn-cancel" onclick="closeFeedback()">取消</button>
+            <button class="modal-btn modal-btn-submit" onclick="submitFeedback()">提交</button>
+        </div>
+    </div>
+    
+    <script>
+        // 历史对话数据
+        const historyData = [
+            { id: 1, title: "新手如何成为盖洛普教练？", time: "刚刚", active: true },
+            { id: 2, title: "做youtube视频小白如何起步？", time: "1小时前" },
+            { id: 3, title: "小红书账号做了20多天了，小眼睛一直没有过百，请问我应该怎么做呀？", time: "2小时前" },
+            { id: 4, title: "工作不满意，不知道喜欢干什么，想做副业有什么好的项目推荐？", time: "3小时前" },
+            { id: 5, title: "抖音短视频变现方式", time: "今天上午" },
+            { id: 6, title: "个人IP打造策略", time: "今天早上" },
+            { id: 7, title: "知识付费产品定价", time: "昨天" },
+            { id: 8, title: "社群运营提升活跃度", time: "昨天" },
+            { id: 9, title: "小红书引流技巧", time: "前天" },
+            { id: 10, title: "微信生态变现模式", time: "3天前" },
+            { id: 11, title: "B站UP主成长路径", time: "4天前" },
+            { id: 12, title: "跨境电商选品策略", time: "5天前" },
+            { id: 13, title: "私域流量池搭建", time: "一周前" },
+            { id: 14, title: "直播带货入门指南", time: "一周前" },
+            { id: 15, title: "亚马逊FBA新手攻略", time: "两周前" },
+            { id: 16, title: "Shopify独立站运营", time: "两周前" },
+            { id: 17, title: "TikTok海外推广", time: "三周前" },
+            { id: 18, title: "YouTube频道运营", time: "一个月前" }
+        ];
+        
+        // 测试问题和答案
+        const testQuestions = {
+            "新手如何成为盖洛普教练？": {
+                sources: 6,
+                time: "4.2",
+                response: `<p>成为盖洛普教练需要完成官方认证流程并持续积累实战经验。根据社区认证教练的分享，这是一个系统化的过程：</p>
+                
+                <p><strong>认证要求与流程</strong><br>
+                首先需要通过盖洛普（中国）公司的官方认证。其4.5天线下认证课程费用为42800元，涵盖理论学习、工具使用和案例演练。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=emily" alt="Emily" class="author-avatar">
+                    <span class="author-name">优势教练Emily</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=emily" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">优势教练Emily</div>
+                                <div class="hover-card-stats">1504 关注 · 1504 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('emily', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">1. 盖洛普教练认证之路</div>
+                            <div class="hover-card-excerpt">详细介绍了盖洛普全球认证优势教练的完整认证流程，包括<mark>4.5天线下课程</mark>（费用42800元）、<mark>在线考试要求</mark>（20道题目）、<mark>6个客户案例提交</mark>等关键环节，以及认证后可获得的权威头衔和350个免费测评码等权益</div>
+                        </div>
+                    </div>
+                </span> 完成后需通过线上考试（20道选择题/判断题）并提交6个客户案例及反馈，最终获得全球认可的证书。</p>
+                
+                <p><strong>核心技能培养</strong><br>
+                官方认证的核心价值在于掌握权威背书和资源支持。认证教练可使用"盖洛普全球认证优势教练"头衔，每年获得350个优势测评码，并可进入校友网络交流。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">256人参与</div>
+                            </div>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">2. 21天优势教练实战训练营</div>
+                            <div class="hover-card-excerpt">由盖洛普总部讲师授课的系统化训练营，帮助学员深入理解<mark>34项才干理论框架</mark>，掌握<mark>优势识别技术</mark>、<mark>一对一教练对话技巧</mark>、<mark>团队优势管理方法</mark>，并通过21天实战练习积累真实案例经验</div>
+                        </div>
+                    </div>
+                </span> 课程由盖洛普总部讲师授课，系统讲解34项才干理论、经理人辅导技巧及团队应用场景。</p>
+                
+                <p><strong>非官方学习路径</strong><br>
+                如果暂时无法参加官方认证，可以选择第三方培训机构的优势教练课程。虽然无法获得官方认证，但通过系统学习盖洛普理论和实践技巧，同样能够开展相关服务。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=coach" alt="教练" class="author-avatar">
+                    <span class="author-name">柳大讲优势</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=coach" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">柳大讲优势</div>
+                                <div class="hover-card-stats">206 关注 · 172 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('liuda', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">3. 非官方路径成长指南</div>
+                            <div class="hover-card-excerpt">针对预算有限的学习者，系统介绍了<mark>非官方学习路径</mark>，包括《现在，发现你的优势》等<mark>必读书籍推荐</mark>、<mark>第三方在线课程</mark>、<mark>免费社群资源</mark>，以及如何通过自我练习积累教练经验的实用方法</div>
+                        </div>
+                    </div>
+                </span> 建议先通过阅读《现在，发现你的优势》等书籍打基础，再决定是否投资官方认证。</p>
+                
+                <p><strong>实战经验积累</strong><br>
+                获得认证只是开始，持续的实践才是成长关键。社区多位优势教练建议从企业内部培训开始，逐步拓展到一对一咨询和团队工作坊。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=jenny" alt="Jenny" class="author-avatar">
+                    <span class="author-name">优势教练Jenny</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=jenny" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">优势教练Jenny</div>
+                                <div class="hover-card-stats">11 关注 · 17 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('jenny', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">4. 教练技术课程对你影响多大？</div>
+                            <div class="hover-card-excerpt">真实记录了学习教练技术后的<mark>个人成长变化</mark>，分享了如何将<mark>优势理论应用到团队管理</mark>、<mark>职业发展规划</mark>、<mark>亲子教育</mark>等实际场景中，以及通过持续练习提升教练能力的心得体会</div>
+                        </div>
+                    </div>
+                </span> 通过不断练习和反馈迭代，提升专业能力和市场认可度。</p>`,
+                references: [
+                    { type: 'author', avatar: 'emily', name: '优势教练Emily', followers: '1504', likes: '1504', title: '一文读懂如何成为盖洛普全球认证优势教练', excerpt: '分享了完整的认证流程、费用明细、学习内容以及认证后的权益...' },
+                    { type: 'manual', name: '优势教练养成航海', participants: '256', title: '21天优势教练实战训练营', excerpt: '系统学习34项才干理论和实践方法...' },
+                    { type: 'author', avatar: 'mentor', name: '醒醒同学', followers: '1.4万', likes: '8228', title: '零基础新手入门如何才能成为一名优秀教练？', excerpt: '系统讲解了34项才干理论和实践方法，包括个人发展和团队应用...' },
+                    { type: 'author', avatar: 'coach', name: '柳大讲优势', followers: '206', likes: '172', title: '攻略：如何成为一名合格的优势教练？', excerpt: '提供了多种学习渠道和实践建议，适合预算有限的学习者...' },
+                    { type: 'author', avatar: 'jenny', name: '优势教练Jenny', followers: '11', likes: '17', title: '教练技术课程对你影响多大？', excerpt: '分享了学习教练技术后的成长感悟和实际应用案例...' },
+                    { type: 'author', avatar: 'leaf', name: '叶叶在觉', followers: '1534', likes: '2404', title: '在盖洛普测试官网怎么做测试？附保姆级别指南', excerpt: '详细介绍了盖洛普优势测评的操作流程和报告解读方法...' }
+                ]
+            },
+            "做youtube视频小白如何起步？": {
+                sources: 12,
+                time: "3.8",
+                response: `<p>YouTube创作对新手来说虽然门槛不高，但要做出成绩需要系统化的方法和持续的优化。根据社区多位成功UP主的经验，可以从以下几个维度切入：</p>
+
+                <p><strong>选择合适的赛道</strong><br>
+                赛道选择直接决定了后续发展潜力。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=kevin" alt="Kevin" class="author-avatar">
+                    <span class="author-name">Kevin</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=kevin" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Kevin</div>
+                                <div class="hover-card-stats">2.3万 关注 · 5847 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('kevin', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">1. YouTube从0到10万订阅实战指南</div>
+                            <div class="hover-card-excerpt">深度分享了YouTube频道从0到10万订阅的完整实战经验，重点讲解了<mark>如何选择适合自己的赛道</mark>（需同时考虑个人兴趣、技能储备、市场需求三个维度），以及<mark>内容定位策略</mark>和<mark>长期规划方法</mark></div>
+                        </div>
+                    </div>
+                </span> 建议从三个维度考虑：个人兴趣、已有技能储备、市场需求量。最理想的是三者交集部分。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">1580人参与</div>
+                            </div>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">2. 30天YouTube频道冷启动计划</div>
+                            <div class="hover-card-excerpt">针对YouTube新手的30天系统化训练计划，涵盖<mark>赛道研究与竞品分析</mark>、<mark>内容选题与创作流程</mark>、<mark>SEO优化技巧</mark>、<mark>社群推广方法</mark>等全流程实战技能，帮助创作者快速度过冷启动期</div>
+                        </div>
+                    </div>
+                </span> 新手可以从生活Vlog、知识分享、技能教学等相对容易上手的类型开始，避免一开始就选择竞争激烈的游戏、美妆等红海赛道。</p>
+
+                <p><strong>设备和技术准备</strong><br>
+                很多新手误以为需要专业设备才能开始，其实不然。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=lisa" alt="Lisa" class="author-avatar">
+                    <span class="author-name">Lisa创作日记</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=lisa" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Lisa创作日记</div>
+                                <div class="hover-card-stats">8634 关注 · 3241 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('lisa', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">3. 手机也能做出百万播放的视频</div>
+                            <div class="hover-card-excerpt">打破"没有专业设备就做不好视频"的误区，详细演示了如何用<mark>iPhone手机拍摄</mark>配合<mark>免费剪辑软件剪映</mark>制作高质量视频内容，包括<mark>打光技巧</mark>、<mark>构图方法</mark>、<mark>剪辑节奏</mark>等实用技能</div>
+                        </div>
+                    </div>
+                </span> 建议初期用手机+简单的剪辑软件（剪映、DaVinci Resolve免费版）就足够了，关键是内容质量和持续更新。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=mike" alt="Mike" class="author-avatar">
+                    <span class="author-name">摄影师Mike</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=mike" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">摄影师Mike</div>
+                                <div class="hover-card-stats">1.5万 关注 · 4522 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('mike', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">4. UP主必备设备清单（预算分级）</div>
+                            <div class="hover-card-excerpt">根据不同预算和需求提供了分级设备推荐方案，从<mark>500元入门套装</mark>（手机+三脚架+补光灯）到<mark>5000元进阶配置</mark>，再到<mark>专业级万元设备</mark>，并说明各价位段的性价比选择和升级路径</div>
+                        </div>
+                    </div>
+                </span> 等频道有一定收入后再考虑升级设备。</p>
+
+                <p><strong>内容创作策略</strong><br>
+                新手最容易犯的错误是没有内容规划，想到什么拍什么。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=sarah" alt="Sarah" class="author-avatar">
+                    <span class="author-name">Sarah说运营</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=sarah" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Sarah说运营</div>
+                                <div class="hover-card-stats">3.2万 关注 · 8965 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('sarah', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">5. YouTube算法推荐机制深度解析</div>
+                            <div class="hover-card-excerpt">深度解析YouTube推荐算法的底层逻辑，揭秘平台如何判断视频质量和推荐权重，详细讲解<mark>标题关键词优化</mark>、<mark>标签战略性使用</mark>、<mark>缩略图CTR提升</mark>、<mark>观看时长优化</mark>等实操技巧</div>
+                        </div>
+                    </div>
+                </span> 建议提前规划3-6个月的内容方向，建立选题库，保持更新节奏。前3个月建议每周至少2-3更，让算法识别你的更新规律。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">2340人参与</div>
+                            </div>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">6. 爆款视频创作公式</div>
+                            <div class="hover-card-excerpt">总结了爆款视频的创作规律和可复制公式，系统讲解<mark>如何从热点中提炼选题</mark>、<mark>故事化脚本撰写技巧</mark>、<mark>前3秒钩子设计方法</mark>、<mark>情绪价值传递</mark>等内容创作核心能力</div>
+                        </div>
+                    </div>
+                </span> 标题和封面是决定点击率的关键因素，需要花时间研究同赛道高播放视频的模式。</p>
+
+                <p><strong>冷启动和涨粉策略</strong><br>
+                新频道最难的是前1000订阅。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=tom" alt="Tom" class="author-avatar">
+                    <span class="author-name">增长黑客Tom</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=tom" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">增长黑客Tom</div>
+                                <div class="hover-card-stats">4.8万 关注 · 1.2万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('tom', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">7. YouTube频道冷启动的10个技巧</div>
+                            <div class="hover-card-excerpt">针对新频道前1000订阅的冷启动难题，提供了10个经过验证的增长策略，包括<mark>Reddit/Quora社群推广</mark>、<mark>同赛道UP主互推合作</mark>、<mark>YouTube SEO关键词优化</mark>、<mark>Shorts导流</mark>等实操方法</div>
+                        </div>
+                    </div>
+                </span> 建议初期多在相关社群、Reddit、Quora等平台分享内容，积累种子用户。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=anna" alt="Anna" class="author-avatar">
+                    <span class="author-name">Anna的成长笔记</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=anna" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Anna的成长笔记</div>
+                                <div class="hover-card-stats">1.6万 关注 · 5234 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('anna', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">8. 我如何在6个月涨到5万订阅</div>
+                            <div class="hover-card-excerpt">真实记录了频道从0到5万订阅的完整成长历程，详细复盘了<mark>0-1000订阅冷启动期</mark>的策略、<mark>1000-1万订阅增长期</mark>的内容调整、<mark>1万-5万订阅爆发期</mark>的流量杠杆，以及每个阶段的关键决策</div>
+                        </div>
+                    </div>
+                </span> 同时要重视YouTube Shorts，短视频的流量获取相对容易，可以给频道导流。</p>
+
+                <p><strong>数据分析和优化</strong><br>
+                定期查看YouTube Studio的数据分析至关重要。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=david" alt="David" class="author-avatar">
+                    <span class="author-name">数据分析师David</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=david" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">数据分析师David</div>
+                                <div class="hover-card-stats">2.7万 关注 · 6834 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('david', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">9. YouTube Studio数据指标完全解读</div>
+                            <div class="hover-card-excerpt">系统解读YouTube Studio后台的核心数据指标，深度讲解<mark>观看时长（Watch Time）</mark>、<mark>点击率（CTR）</mark>、<mark>观众留存率</mark>、<mark>流量来源分析</mark>等关键指标的含义及优化方向</div>
+                        </div>
+                    </div>
+                </span> 重点关注观看时长、点击率、订阅转化率这三个核心指标，根据数据调整内容策略。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=emma" alt="Emma" class="author-avatar">
+                    <span class="author-name">Emma聊创作</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=emma" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Emma聊创作</div>
+                                <div class="hover-card-stats">9845 关注 · 3567 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('emma', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">10. 我用A/B测试让播放量翻倍</div>
+                            <div class="hover-card-excerpt">通过科学的A/B测试方法让视频播放量提升了2倍，详细分享了如何对<mark>缩略图进行多版本测试</mark>、<mark>标题关键词优化实验</mark>、<mark>发布时间段测试</mark>，以及如何根据数据反馈快速迭代</div>
+                        </div>
+                    </div>
+                </span> 如果某类视频表现特别好，就多做相似内容；表现差的及时调整方向，不要固执己见。</p>
+
+                <p><strong>变现路径规划</strong><br>
+                虽然初期重点是内容和涨粉，但提前了解变现方式有助于长期规划。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=jack" alt="Jack" class="author-avatar">
+                    <span class="author-name">Jack的副业经</span>
+                    <div class="hover-card">
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=jack" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Jack的副业经</div>
+                                <div class="hover-card-stats">5.4万 关注 · 1.8万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('jack', event)">关注</button>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">11. YouTube变现的8种方式详解</div>
+                            <div class="hover-card-excerpt">全面梳理了YouTube创作者的8种变现途径，包括<mark>YouTube Partner Program广告分成</mark>、<mark>频道会员订阅</mark>、<mark>Super Chat打赏</mark>、<mark>品牌赞助合作</mark>、<mark>联盟营销</mark>、<mark>知识付费</mark>等，并分析各方式的门槛和收益潜力</div>
+                        </div>
+                    </div>
+                </span> 除了YouTube Partner计划的广告分成，还有品牌合作、联盟营销、知识付费、直播打赏等多种变现方式。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">3120人参与</div>
+                            </div>
+                        </div>
+                        <div class="hover-card-content">
+                            <div class="hover-card-title">12. 从0到月入10万的变现路径</div>
+                            <div class="hover-card-excerpt">针对内容创作者的系统化变现课程，涵盖<mark>如何接洽品牌商务合作</mark>、<mark>开发自有产品和课程</mark>、<mark>建立私域社群运营</mark>、<mark>多平台矩阵布局</mark>等高阶变现策略，帮助创作者实现月入10万+的目标</div>
+                        </div>
+                    </div>
+                </span> 建议在达到1000订阅后就开始尝试小规模变现，积累商业化经验。</p>`,
+                references: [
+                    { type: 'author', avatar: 'kevin', name: 'Kevin', followers: '2.3万', likes: '5847', title: 'YouTube从0到10万订阅实战指南' },
+                    { type: 'manual', name: 'YouTube创作者成长营', participants: '1580', title: '30天YouTube频道冷启动计划' },
+                    { type: 'author', avatar: 'lisa', name: 'Lisa创作日记', followers: '8634', likes: '3241', title: '手机也能做出百万播放的视频' },
+                    { type: 'author', avatar: 'mike', name: '摄影师Mike', followers: '1.5万', likes: '4522', title: 'UP主必备设备清单（预算分级）' },
+                    { type: 'author', avatar: 'sarah', name: 'Sarah说运营', followers: '3.2万', likes: '8965', title: 'YouTube算法推荐机制深度解析' },
+                    { type: 'manual', name: '内容创作方法论', participants: '2340', title: '爆款视频创作公式' },
+                    { type: 'author', avatar: 'tom', name: '增长黑客Tom', followers: '4.8万', likes: '1.2万', title: 'YouTube频道冷启动的10个技巧' },
+                    { type: 'author', avatar: 'anna', name: 'Anna的成长笔记', followers: '1.6万', likes: '5234', title: '我如何在6个月涨到5万订阅' },
+                    { type: 'author', avatar: 'david', name: '数据分析师David', followers: '2.7万', likes: '6834', title: 'YouTube Studio数据指标完全解读' },
+                    { type: 'author', avatar: 'emma', name: 'Emma聊创作', followers: '9845', likes: '3567', title: '我用A/B测试让播放量翻倍' },
+                    { type: 'author', avatar: 'jack', name: 'Jack的副业经', followers: '5.4万', likes: '1.8万', title: 'YouTube变现的8种方式详解' },
+                    { type: 'manual', name: '创作者变现实战营', participants: '3120', title: '从0到月入10万的变现路径' }
+                ]
+            },
+            "小红书账号做了20多天了，小眼睛一直没有过百，请问我应该怎么做呀？": {
+                sources: 13,
+                time: "4.1",
+                response: `<p>小红书的"小眼睛"（浏览量）一直不过百，是很多新手遇到的困境。根据社区多位小红书博主的实战经验，这个问题通常涉及账号定位、内容质量、发布策略等多个维度，需要系统性优化。</p>
+
+                <p><strong>账号定位与人设打造</strong><br>
+                首先要检查账号定位是否清晰。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=lucy" alt="Lucy" class="author-avatar">
+                    <span class="author-name">小红书Lucy</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('lucy-positioning')">
+                            <div class="hover-card-title">1. 小红书账号0-1冷启动全攻略</div>
+                            <div class="hover-card-excerpt">系统分析了小红书账号冷启动失败的核心原因——<mark>账号定位不清晰</mark>、<mark>人设模糊</mark>、<mark>内容方向杂乱</mark>，导致平台算法无法识别账号属性和目标用户群，从而无法获得精准流量推荐，并提供了完整的解决方案</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=lucy" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">小红书Lucy</div>
+                                <div class="hover-card-stats">5.6万 关注 · 2.3万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('lucy', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 建议聚焦一个细分赛道，比如"职场穿搭"而不是泛泛的"穿搭分享"，"Python数据分析"而不是"编程学习"。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('xiaohongshu')">
+                            <div class="hover-card-title">2. 小红书账号快速起号指南</div>
+                            <div class="hover-card-excerpt">经过500+新手博主实战验证的快速起号方法论，通过<mark>细分赛道精准定位</mark>、<mark>关键词和话题标签优化</mark>、<mark>基于数据反馈的内容快速迭代</mark>三步法，系统性解决账号冷启动流量困境</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">2840人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> 账号简介、头像、昵称都要围绕这个定位设计，让用户一眼就知道你是做什么的。</p>
+
+                <p><strong>内容质量优化</strong><br>
+                浏览量低往往说明内容缺乏吸引力。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=mia" alt="Mia" class="author-avatar">
+                    <span class="author-name">Mia的小红书笔记</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('mia-content')">
+                            <div class="hover-card-title">3. 我用这3个技巧让笔记浏览量翻了10倍</div>
+                            <div class="hover-card-excerpt">通过实战验证的3个核心技巧让笔记浏览量从几十涨到上千：<mark>封面图要有强烈视觉冲击</mark>（对比色、清晰文案）、<mark>标题制造好奇心和痛点</mark>（而非平铺直叙）、<mark>内容前3秒设置钩子</mark>留住用户，提高完读率</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=mia" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Mia的小红书笔记</div>
+                                <div class="hover-card-stats">3.8万 关注 · 1.5万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('mia', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 封面图要清晰美观，建议用拼图模板（Canva、黄油相机）；标题要戳中痛点或制造悬念，避免平铺直叙。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=nina" alt="Nina" class="author-avatar">
+                    <span class="author-name">运营Nina</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('nina-title')">
+                            <div class="hover-card-title">4. 小红书爆款标题的20个模板</div>
+                            <div class="hover-card-excerpt">精心整理了20个经过验证的爆款标题模板，涵盖<mark>疑问式</mark>（"为什么别人都…而你不行？"）、<mark>数字式</mark>（"7天见效的…"）、<mark>对比式</mark>（"花了3万才懂的…"）等多种类型，新手可直接套用</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=nina" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">运营Nina</div>
+                                <div class="hover-card-stats">4.2万 关注 · 1.9万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('nina', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 正文内容要有价值、有干货，避免流水账和废话。</p>
+
+                <p><strong>标签和关键词策略</strong><br>
+                很多新手忽略了标签的重要性。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=oliver" alt="Oliver" class="author-avatar">
+                    <span class="author-name">增长专家Oliver</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('oliver-tags')">
+                            <div class="hover-card-title">小红书标签选择的3大误区</div>
+                            <div class="hover-card-excerpt">不要只用<mark>热门标签</mark>，要找<mark>精准长尾标签</mark>；不要堆砌太多标签，5-8个即可；标签要和内容强相关，否则会被限流...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=oliver" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">增长专家Oliver</div>
+                                <div class="hover-card-stats">6.3万 关注 · 3.1万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('oliver', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 建议使用"2个热门标签+3个精准标签+2个长尾标签"的组合策略。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('seo-tags')">
+                            <div class="hover-card-title">小红书SEO优化实战课</div>
+                            <div class="hover-card-excerpt">深度解析小红书搜索排名机制，教你如何通过<mark>关键词布局</mark>、<mark>标签优化</mark>、<mark>内容权重</mark>提升笔记曝光...</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">1920人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> 同时在标题和正文中自然融入2-3个核心关键词，提升搜索曝光。</p>
+
+                <p><strong>发布时间和频率</strong><br>
+                发布时间会影响初始流量。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=penny" alt="Penny" class="author-avatar">
+                    <span class="author-name">数据分析Penny</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('penny-timing')">
+                            <div class="hover-card-title">我分析了1000条爆款笔记的发布时间</div>
+                            <div class="hover-card-excerpt">发现<mark>早上7-9点</mark>、<mark>中午12-13点</mark>、<mark>晚上19-22点</mark>是流量高峰期，这些时段发布笔记获得的初始曝光更多...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=penny" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">数据分析Penny</div>
+                                <div class="hover-card-stats">2.9万 关注 · 1.2万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('penny', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 建议选择用户活跃度高的时间段发布。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=quinn" alt="Quinn" class="author-avatar">
+                    <span class="author-name">Quinn的运营日记</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('quinn-frequency')">
+                            <div class="hover-card-title">小红书更新频率实验：日更vs隔天更</div>
+                            <div class="hover-card-excerpt">通过3个月实验发现，<mark>稳定的更新节奏</mark>比高频更新更重要，新手期建议每周3-4更，保证质量的前提下提升频率...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=quinn" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Quinn的运营日记</div>
+                                <div class="hover-card-stats">1.7万 关注 · 8234 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('quinn', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 更新频率方面，新手期建议每周保持3-4条高质量内容，培养平台对账号的认知。</p>
+
+                <p><strong>互动和社区运营</strong><br>
+                主动互动可以提升账号活跃度。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=rachel" alt="Rachel" class="author-avatar">
+                    <span class="author-name">社群Rachel</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('rachel-engage')">
+                            <div class="hover-card-title">小红书冷启动的互动技巧</div>
+                            <div class="hover-card-excerpt">新账号要主动去<mark>同领域博主下留言</mark>、<mark>加入话题讨论</mark>、<mark>及时回复评论</mark>，提升账号权重和曝光机会...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=rachel" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">社群Rachel</div>
+                                <div class="hover-card-stats">3.5万 关注 · 1.6万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('rachel', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 每天花30分钟去同赛道博主的笔记下真诚评论，不仅能学习优秀案例，还能吸引部分粉丝关注。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('community')">
+                            <div class="hover-card-title">小红书社区互动增长法</div>
+                            <div class="hover-card-excerpt">通过<mark>精准互动</mark>、<mark>话题参与</mark>、<mark>私信运营</mark>等策略，快速积累种子用户，突破流量瓶颈...</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">1560人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> 同时要及时回复自己笔记下的评论，提升互动率。</p>
+
+                <p><strong>内容数据分析</strong><br>
+                定期查看创作者中心的数据很重要。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=steve" alt="Steve" class="author-avatar">
+                    <span class="author-name">Steve数据说</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('steve-analysis')">
+                            <div class="hover-card-title">小红书创作者后台数据解读</div>
+                            <div class="hover-card-excerpt">重点关注<mark>点击率</mark>、<mark>阅读完成率</mark>、<mark>互动率</mark>三个指标，低于行业平均值就要针对性优化...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=steve" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Steve数据说</div>
+                                <div class="hover-card-stats">4.1万 关注 · 2.2万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('steve', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 看哪类内容表现好就多做相似的，表现差的及时调整方向。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=tina" alt="Tina" class="author-avatar">
+                    <span class="author-name">Tina的增长笔记</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('tina-iterate')">
+                            <div class="hover-card-title">我是如何在30天内突破1000粉的</div>
+                            <div class="hover-card-excerpt">通过<mark>持续测试</mark>和<mark>快速迭代</mark>，找到了适合自己的内容方向和表达方式，浏览量从两位数涨到了四位数...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=tina" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Tina的增长笔记</div>
+                                <div class="hover-card-stats">2.6万 关注 · 1.1万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('tina', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 新手期就是要不断试错，找到适合自己的内容形式和风格。</p>
+
+                <p><strong>避开常见误区</strong><br>
+                还有一些细节可能导致限流。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=uma" alt="Uma" class="author-avatar">
+                    <span class="author-name">Uma避坑指南</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('uma-mistakes')">
+                            <div class="hover-card-title">小红书新手最容易踩的10个坑</div>
+                            <div class="hover-card-excerpt">包括<mark>搬运内容</mark>、<mark>营销引导过度</mark>、<mark>刷数据</mark>、<mark>频繁修改笔记</mark>等行为，都会导致限流甚至封号...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=uma" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">Uma避坑指南</div>
+                                <div class="hover-card-stats">3.3万 关注 · 1.7万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('uma', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 避免搬运内容、过度营销引导、频繁修改发布过的笔记、使用违规词等行为。坚持原创，真诚分享，耐心积累，突破百眼指日可待。</p>`,
+                references: [
+                    { type: 'author', avatar: 'lucy', name: '小红书Lucy', followers: '5.6万', likes: '2.3万', title: '小红书账号0-1冷启动全攻略' },
+                    { type: 'manual', name: '小红书运营实战营', participants: '2840', title: '小红书账号快速起号指南' },
+                    { type: 'author', avatar: 'mia', name: 'Mia的小红书笔记', followers: '3.8万', likes: '1.5万', title: '我用这3个技巧让笔记浏览量翻了10倍' },
+                    { type: 'author', avatar: 'nina', name: '运营Nina', followers: '4.2万', likes: '1.9万', title: '小红书爆款标题的20个模板' },
+                    { type: 'author', avatar: 'oliver', name: '增长专家Oliver', followers: '6.3万', likes: '3.1万', title: '小红书标签选择的3大误区' },
+                    { type: 'manual', name: '小红书SEO实战', participants: '1920', title: '小红书SEO优化实战课' },
+                    { type: 'author', avatar: 'penny', name: '数据分析Penny', followers: '2.9万', likes: '1.2万', title: '我分析了1000条爆款笔记的发布时间' },
+                    { type: 'author', avatar: 'quinn', name: 'Quinn的运营日记', followers: '1.7万', likes: '8234', title: '小红书更新频率实验：日更vs隔天更' },
+                    { type: 'author', avatar: 'rachel', name: '社群Rachel', followers: '3.5万', likes: '1.6万', title: '小红书冷启动的互动技巧' },
+                    { type: 'manual', name: '社区运营实战', participants: '1560', title: '小红书社区互动增长法' },
+                    { type: 'author', avatar: 'steve', name: 'Steve数据说', followers: '4.1万', likes: '2.2万', title: '小红书创作者后台数据解读' },
+                    { type: 'author', avatar: 'tina', name: 'Tina的增长笔记', followers: '2.6万', likes: '1.1万', title: '我是如何在30天内突破1000粉的' },
+                    { type: 'author', avatar: 'uma', name: 'Uma避坑指南', followers: '3.3万', likes: '1.7万', title: '小红书新手最容易踩的10个坑' }
+                ]
+            },
+            "工作不满意，不知道喜欢干什么，想做副业有什么好的项目推荐？": {
+                sources: 14,
+                time: "5.2",
+                response: `<p>这是很多职场人的困境：对当前工作不满意，却又不知道自己真正喜欢什么，想做副业又不知从何入手。根据社区多位副业成功者的经验，找到适合自己的副业项目需要从自我探索、技能盘点、市场验证等维度系统思考。</p>
+
+                <p><strong>自我认知与兴趣探索</strong><br>
+                首先要弄清楚自己到底想要什么。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=victor" alt="Victor" class="author-avatar">
+                    <span class="author-name">职业规划Victor</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('victor-explore')">
+                            <div class="hover-card-title">不知道喜欢什么？试试这5个自我探索方法</div>
+                            <div class="hover-card-excerpt">通过<mark>兴趣清单法</mark>、<mark>体验周记</mark>、<mark>能量时刻记录</mark>等方法，帮你找到真正让你有热情和成就感的方向...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=victor" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">职业规划Victor</div>
+                                <div class="hover-card-stats">7.2万 关注 · 3.8万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('victor', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 建议先花1-2周时间做自我探索：记录每天什么事情让你感到开心、有成就感，什么技能使用起来毫不费力。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('career-finding')">
+                            <div class="hover-card-title">2. 职业方向探索21天训练营</div>
+                            <div class="hover-card-excerpt">通过<mark>优势识别</mark>、<mark>兴趣测试</mark>、<mark>价值观澄清</mark>等系统化方法，帮你找到职业发展方向...</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">3650人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> 同时可以做一些职业测评（如MBTI、霍兰德职业兴趣测试），虽然不能完全决定方向，但能提供参考。</p>
+
+                <p><strong>技能盘点与资源梳理</strong><br>
+                副业不是从零开始，而是基于现有资源的延伸。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=wendy" alt="Wendy" class="author-avatar">
+                    <span class="author-name">副业导师Wendy</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('wendy-skills')">
+                            <div class="hover-card-title">普通人的副业从哪里来？</div>
+                            <div class="hover-card-excerpt">列出你的<mark>专业技能</mark>、<mark>兴趣爱好</mark>、<mark>人脉资源</mark>、<mark>空闲时间</mark>，交叉组合就能找到切入点...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=wendy" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">副业导师Wendy</div>
+                                <div class="hover-card-stats">8.9万 关注 · 4.5万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('wendy', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 梳理一下你的核心技能（工作中积累的专业能力）、可迁移技能（沟通、组织、数据分析等）、兴趣技能（业余爱好延伸的能力）。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=xavier" alt="Xavier" class="author-avatar">
+                    <span class="author-name">斜杠青年Xavier</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('xavier-portfolio')">
+                            <div class="hover-card-title">我如何从月薪8K到副业年入30W</div>
+                            <div class="hover-card-excerpt">把<mark>工作技能</mark>转化为<mark>咨询服务</mark>，把<mark>兴趣爱好</mark>变成<mark>内容创作</mark>，实现收入多元化...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=xavier" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">斜杠青年Xavier</div>
+                                <div class="hover-card-stats">6.5万 关注 · 2.9万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('xavier', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 很多副业机会就藏在你的工作经验和业余爱好的交叉点上。</p>
+
+                <p><strong>低门槛副业项目推荐</strong><br>
+                根据投入成本和技能要求，这里推荐几个适合新手的方向。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('sidehustle-guide')">
+                            <div class="hover-card-title">副业赚钱100种方法</div>
+                            <div class="hover-card-excerpt">汇总了<mark>内容创作</mark>、<mark>技能变现</mark>、<mark>电商运营</mark>、<mark>投资理财</mark>等10大类副业项目...</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">5280人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> <strong>内容创作类：</strong><span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=yuki" alt="Yuki" class="author-avatar">
+                    <span class="author-name">自媒体Yuki</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('yuki-content')">
+                            <div class="hover-card-title">0基础做自媒体3个月变现2万</div>
+                            <div class="hover-card-excerpt">选择<mark>小红书</mark>+<mark>公众号</mark>双平台，输出<mark>职场干货</mark>，通过<mark>广告</mark>和<mark>知识付费</mark>变现...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=yuki" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">自媒体Yuki</div>
+                                <div class="hover-card-stats">4.7万 关注 · 2.1万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('yuki', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 小红书、抖音、公众号等平台门槛低，可以输出你擅长领域的知识分享。<strong>技能服务类：</strong><span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=zoe" alt="Zoe" class="author-avatar">
+                    <span class="author-name">自由职业Zoe</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('zoe-freelance')">
+                            <div class="hover-card-title">设计师副业接单月入2万+的方法</div>
+                            <div class="hover-card-excerpt">在<mark>猪八戒</mark>、<mark>站酷</mark>等平台接单，积累作品后转向<mark>私域长期客户</mark>...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=zoe" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">自由职业Zoe</div>
+                                <div class="hover-card-stats">5.3万 关注 · 2.8万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('zoe', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 设计、写作、翻译、编程、咨询等专业技能都可以在威客平台接单。</p>
+
+                <p><strong>副业选择的黄金法则</strong><br>
+                不是所有副业都适合你。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=alan" alt="Alan" class="author-avatar">
+                    <span class="author-name">副业教练Alan</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('alan-rules')">
+                            <div class="hover-card-title">选副业的3个底层逻辑</div>
+                            <div class="hover-card-excerpt">必须满足<mark>时间灵活</mark>、<mark>可积累</mark>、<mark>能持续</mark>三个条件，否则只是用时间换钱...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=alan" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">副业教练Alan</div>
+                                <div class="hover-card-stats">9.1万 关注 · 5.2万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('alan', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 选择副业要考虑三点：1）时间可控（不影响主业），2）能力可积累（做得越久越值钱），3）边际成本递减（不是简单卖时间）。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('sidehustle-strategy')">
+                            <div class="hover-card-title">副业战略规划课</div>
+                            <div class="hover-card-excerpt">学习如何<mark>选择赛道</mark>、<mark>时间管理</mark>、<mark>收入规划</mark>，避免副业变成负业...</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">4120人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> 避免选择需要大量前期投入、完全依赖体力劳动、市场过度饱和的项目。</p>
+
+                <p><strong>从0到1的启动策略</strong><br>
+                确定方向后要快速验证。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=bob" alt="Bob" class="author-avatar">
+                    <span class="author-name">精益创业Bob</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('bob-mvp')">
+                            <div class="hover-card-title">副业MVP验证法：一个月知道行不行</div>
+                            <div class="hover-card-excerpt">用<mark>最小成本</mark>测试市场需求，通过<mark>朋友圈</mark>、<mark>社群</mark>快速获得第一批客户反馈...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=bob" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">精益创业Bob</div>
+                                <div class="hover-card-stats">6.8万 关注 · 3.4万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('bob', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 不要追求完美，先用最小成本（1-2周）做MVP验证：发几条内容测试反馈，接1-2个小单子试试水。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=cathy" alt="Cathy" class="author-avatar">
+                    <span class="author-name">副业实战Cathy</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('cathy-start')">
+                            <div class="hover-card-title">我的副业冷启动3步法</div>
+                            <div class="hover-card-excerpt">第1周<mark>朋友圈预热</mark>，第2周<mark>低价引流</mark>，第3周<mark>正价转化</mark>，快速积累第一批客户...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=cathy" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">副业实战Cathy</div>
+                                <div class="hover-card-stats">4.2万 关注 · 1.9万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('cathy', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 从身边熟人开始，积累案例和口碑，逐步扩大影响力。</p>
+
+                <p><strong>时间管理与持续优化</strong><br>
+                副业最大的挑战是平衡主业和副业。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=diana" alt="Diana" class="author-avatar">
+                    <span class="author-name">时间管理Diana</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('diana-time')">
+                            <div class="hover-card-title">上班族做副业的时间管理秘诀</div>
+                            <div class="hover-card-excerpt">利用<mark>早起1小时</mark>、<mark>午休30分钟</mark>、<mark>晚上2小时</mark>的碎片时间，每周至少投入10小时...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=diana" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">时间管理Diana</div>
+                                <div class="hover-card-stats">7.6万 关注 · 4.1万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('diana', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 建议每天至少投入1-2小时，周末集中3-4小时深度工作。<span class="author-ref manual-ref">
+                    <span class="manual-icon">📘</span>
+                    <span class="author-name">航海手册</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openManual('productivity')">
+                            <div class="hover-card-title">高效能人士的副业时间管理</div>
+                            <div class="hover-card-excerpt">通过<mark>时间块管理</mark>、<mark>精力管理</mark>、<mark>效率工具</mark>等方法，在有限时间内创造最大价值...</div>
+                        </div>
+                        <div class="hover-card-manual">
+                            <div class="hover-card-manual-icon">📘</div>
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">航海手册</div>
+                                <div class="hover-card-participants">2890人参与</div>
+                            </div>
+                        </div>
+                    </div>
+                </span> 用好待办清单、番茄钟等工具，提升执行效率。</p>
+
+                <p><strong>心态调整与长期规划</strong><br>
+                副业需要耐心，不要期待一夜暴富。<span class="author-ref">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=eric" alt="Eric" class="author-avatar">
+                    <span class="author-name">副业老兵Eric</span>
+                    <div class="hover-card">
+                        <div class="hover-card-content" onclick="openArticle('eric-mindset')">
+                            <div class="hover-card-title">做副业3年，我总结的5条心得</div>
+                            <div class="hover-card-excerpt">前3个月可能没收入是正常的，关键是<mark>持续输出</mark>、<mark>复盘迭代</mark>、<mark>建立系统</mark>...</div>
+                        </div>
+                        <div class="hover-card-header">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=eric" class="hover-card-avatar">
+                            <div class="hover-card-info">
+                                <div class="hover-card-name">副业老兵Eric</div>
+                                <div class="hover-card-stats">8.3万 关注 · 4.7万 获赞</div>
+                            </div>
+                            <button class="hover-card-follow" onclick="followAuthor('eric', event)">关注</button>
+                        </div>
+                    </div>
+                </span> 大部分副业需要3-6个月才能看到明显收益，前期重点是积累经验、打磨产品、建立口碑。每月复盘一次，看哪些做得好、哪些需要改进，持续优化。把副业当成长期投资而不是短期套现，才能走得更远。</p>`,
+                references: [
+                    { type: 'author', avatar: 'victor', name: '职业规划Victor', followers: '7.2万', likes: '3.8万', title: '不知道喜欢什么？试试这5个自我探索方法' },
+                    { type: 'manual', name: '职业探索训练营', participants: '3650', title: '职业方向探索21天训练营' },
+                    { type: 'author', avatar: 'wendy', name: '副业导师Wendy', followers: '8.9万', likes: '4.5万', title: '普通人的副业从哪里来？' },
+                    { type: 'author', avatar: 'xavier', name: '斜杠青年Xavier', followers: '6.5万', likes: '2.9万', title: '我如何从月薪8K到副业年入30W' },
+                    { type: 'manual', name: '副业项目大全', participants: '5280', title: '副业赚钱100种方法' },
+                    { type: 'author', avatar: 'yuki', name: '自媒体Yuki', followers: '4.7万', likes: '2.1万', title: '0基础做自媒体3个月变现2万' },
+                    { type: 'author', avatar: 'zoe', name: '自由职业Zoe', followers: '5.3万', likes: '2.8万', title: '设计师副业接单月入2万+的方法' },
+                    { type: 'author', avatar: 'alan', name: '副业教练Alan', followers: '9.1万', likes: '5.2万', title: '选副业的3个底层逻辑' },
+                    { type: 'manual', name: '副业战略课', participants: '4120', title: '副业战略规划课' },
+                    { type: 'author', avatar: 'bob', name: '精益创业Bob', followers: '6.8万', likes: '3.4万', title: '副业MVP验证法：一个月知道行不行' },
+                    { type: 'author', avatar: 'cathy', name: '副业实战Cathy', followers: '4.2万', likes: '1.9万', title: '我的副业冷启动3步法' },
+                    { type: 'author', avatar: 'diana', name: '时间管理Diana', followers: '7.6万', likes: '4.1万', title: '上班族做副业的时间管理秘诀' },
+                    { type: 'manual', name: '时间管理实战', participants: '2890', title: '高效能人士的副业时间管理' },
+                    { type: 'author', avatar: 'eric', name: '副业老兵Eric', followers: '8.3万', likes: '4.7万', title: '做副业3年，我总结的5条心得' }
+                ]
+            }
+        };
+
+        // 初始化历史记录
+        function initHistory() {
+            const historyList = document.getElementById('historyList');
+            const todayItems = historyData.filter((item, index) => index < 6);
+            const yesterdayItems = historyData.filter((item, index) => index >= 6 && index < 12);
+            const lastWeekItems = historyData.filter((item, index) => index >= 12);
+            
+            historyList.innerHTML = `
+                <div class="history-section">
+                    <div class="history-label">今天</div>
+                    ${todayItems.map(item => `
+                        <div class="history-item ${item.active ? 'active' : ''}" onclick="loadConversation(${item.id})">
+                            <div class="history-title">${item.title}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="history-section">
+                    <div class="history-label">昨天</div>
+                    ${yesterdayItems.map(item => `
+                        <div class="history-item" onclick="loadConversation(${item.id})">
+                            <div class="history-title">${item.title}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="history-section">
+                    <div class="history-label">最近7天</div>
+                    ${lastWeekItems.map(item => `
+                        <div class="history-item" onclick="loadConversation(${item.id})">
+                            <div class="history-title">${item.title}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        // 加载对话
+        function loadConversation(id) {
+            const item = historyData.find(h => h.id === id);
+            if (item && testQuestions[item.title]) {
+                const data = testQuestions[item.title];
+                document.getElementById('chatArea').innerHTML = `
+                    <div class="message message-user">
+                        <div class="message-content">
+                            <div class="user-bubble">${item.title}</div>
+                        </div>
+                    </div>
+                    <div class="message">
+                        <div class="message-content">
+                            <div class="ai-response">
+                                <div class="ai-response-header">
+                                    <span class="response-time">完成回答，用时 ${data.time} 秒</span>
+                                    <button class="sources-btn" onclick="toggleDrawer(${data.sources})">
+                                        <span>全部来源</span>
+                                        <span class="sources-count">${data.sources}</span>
+                                    </button>
+                                </div>
+                                <div class="ai-text">${data.response}</div>
+                                <div class="ai-footer">
+                                    <span class="ai-disclaimer">以上内容由AI生成</span>
+                                    <div class="ai-actions">
+                                        <button class="ai-action-btn" onclick="copyResponse()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                            </svg>
+                                            复制
+                                        </button>
+                                        <button class="ai-action-btn" id="likeBtn" onclick="likeResponse()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
+                                            </svg>
+                                            <span id="likeBtnText">有用</span>
+                                        </button>
+                                        <button class="ai-action-btn" onclick="dislikeResponse()">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h3a2 2 0 012 2v7a2 2 0 01-2 2h-3"/>
+                                            </svg>
+                                            不满意
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 更新抽屉内容
+                updateDrawerContent(item.title);
+                
+                // 更新聊天标题
+                document.getElementById('chatTitle').textContent = item.title;
+                
+                // 更新历史记录激活状态
+                document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+                if (event && event.target) {
+                    const item = event.target.closest('.history-item');
+                    if (item) item.classList.add('active');
+                } else {
+                    // 如果没有event，通过id找到对应的历史记录项
+                    const historyItems = document.querySelectorAll('.history-item');
+                    const index = historyData.findIndex(h => h.id === id);
+                    if (historyItems[index]) {
+                        historyItems[index].classList.add('active');
+                    }
+                }
+
+                // 显示底部输入框
+                const bottomInputArea = document.getElementById('bottomInputArea');
+                if (bottomInputArea) bottomInputArea.style.display = 'block';
+            }
+        }
+        
+        // 更新抽屉内容
+        function updateDrawerContent(question) {
+            const data = testQuestions[question];
+            if (data && data.references) {
+                const drawerContent = document.getElementById('drawerContent');
+                drawerContent.innerHTML = data.references.map((ref, index) => {
+                    if (ref.type === 'manual') {
+                        return `
+                            <div class="reference-item" onclick="openManual('${ref.name}')">
+                                <div class="reference-title">${index + 1}. ${ref.title}</div>
+                                <div class="reference-meta">
+                                    <div class="hover-card-manual-icon" style="width: 24px; height: 24px; font-size: 14px;">📘</div>
+                                    <div class="reference-author-info">
+                                        <div class="reference-author-name">航海手册</div>
+                                        <div class="reference-date">${ref.participants}人参与</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="reference-item" onclick="openArticle('${ref.name}')">
+                                <div class="reference-title">${index + 1}. ${ref.title}</div>
+                                <div class="reference-meta">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${ref.avatar}" class="reference-author-img">
+                                    <div class="reference-author-info">
+                                        <div class="reference-author-name">${ref.name}</div>
+                                        <div class="reference-date">${ref.followers} 关注 · ${ref.likes} 获赞</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+                
+                document.getElementById('drawerTitle').textContent = `参考来源 ${data.sources}`;
+            }
+        }
+        
+        // 切换抽屉
+        function toggleDrawer(count) {
+            const drawer = document.getElementById('referenceDrawer');
+            drawer.classList.toggle('open');
+            if (count !== undefined) {
+                document.getElementById('drawerTitle').textContent = `参考来源 ${count}`;
+            }
+        }
+        
+        // 开始新对话
+        function startNewChat() {
+            document.getElementById('chatArea').innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 20px;">
+                    <!-- Logo图标 -->
+                    <div style="width: 120px; height: 120px; margin-bottom: 32px; position: relative;">
+                        <!-- 保持正方向，不旋转 -->
+                        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #00D4AA 50%, #3B82F6 75%, #667eea 100%); border-radius: 30%; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <div style="color: #FFD700; font-size: 36px; display: flex; align-items: center; justify-content: center;">
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.2L12 16.6l-6.3 4.6 2.3-7.2-6-4.6h7.6z"/>
+                                    <path d="M8 8l1.5 1.5M16 8l-1.5 1.5" stroke="currentColor" stroke-width="1" opacity="0.6"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <!-- 内测标签 -->
+                        <div style="position: absolute; top: -8px; right: 10px; background: #FF6B6B; color: white; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; z-index: 10;">
+                            内测
+                        </div>
+                    </div>
+
+                    <!-- 标题 -->
+                    <h1 style="font-size: 36px; font-weight: 600; margin-bottom: 16px; background: linear-gradient(135deg, #667eea 0%, #00D4AA 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        生财有术 AI问答助手
+                    </h1>
+
+                    <!-- 描述文字 -->
+                    <p style="font-size: 18px; color: #64748B; margin-bottom: 8px;">
+                        基于社区10万+优质内容
+                    </p>
+                    <p style="font-size: 16px; color: #94A3B8;">
+                        为您提供专业的商业洞察和实战经验
+                    </p>
+
+                    <!-- 输入区域 -->
+                    <div style="margin-top: 48px; width: 100%; max-width: 700px; position: relative;">
+                        <div style="position: relative; padding: 2px; background: linear-gradient(135deg, #00D4AA 0%, #3B82F6 50%, #A855F7 100%); border-radius: 24px;">
+                            <div style="background: white; border-radius: 22px; padding: 12px 20px; display: flex; align-items: center;">
+                                <input type="text" id="emptyPageInput" placeholder="输入你的问题，探索商业智慧..." style="flex: 1; border: none; outline: none; font-size: 16px; color: #1A202C; background: transparent;" onkeypress="if(event.key==='Enter') sendQuestionFromEmpty()">
+                                <button onclick="sendQuestionFromEmpty()" style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #00D4AA 0%, #3B82F6 50%, #A855F7 100%); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; margin-left: 12px; flex-shrink: 0;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chatTitle').textContent = '新对话';
+            document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+
+            // 隐藏底部输入框
+            const bottomInputArea = document.getElementById('bottomInputArea');
+            if (bottomInputArea) bottomInputArea.style.display = 'none';
+        }
+        
+        // 从空白页发送问题
+        function sendQuestionFromEmpty() {
+            const input = document.getElementById('emptyPageInput');
+            const question = input.value.trim();
+            if (question && testQuestions[question]) {
+                // 清空聊天区域
+                document.getElementById('chatArea').innerHTML = '';
+
+                // 更新标题
+                document.getElementById('chatTitle').textContent = question;
+
+                // 显示底部输入框
+                const bottomInputArea = document.getElementById('bottomInputArea');
+                if (bottomInputArea) bottomInputArea.style.display = 'block';
+
+                // 使用打字机效果显示问答
+                appendQuestion(question);
+
+                input.value = '';
+            } else if (question) {
+                alert('抱歉，暂时只支持预设问题。请尝试：\n1. 新手如何成为盖洛普教练？\n2. 做youtube视频小白如何起步？\n3. 小红书账号做了20多天了，小眼睛一直没有过百，请问我应该怎么做呀？\n4. 工作不满意，不知道喜欢干什么，想做副业有什么好的项目推荐？');
+            }
+        }
+
+        // 从底部输入框发送问题
+        function sendQuestionFromBottom() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            if (question && testQuestions[question]) {
+                // 追加新的问答到对话区域
+                appendQuestion(question);
+                input.value = '';
+            } else if (question) {
+                alert('抱歉，暂时只支持预设问题。请尝试：\n1. 新手如何成为盖洛普教练？\n2. 做youtube视频小白如何起步？\n3. 小红书账号做了20多天了，小眼睛一直没有过百，请问我应该怎么做呀？\n4. 工作不满意，不知道喜欢干什么，想做副业有什么好的项目推荐？');
+            }
+        }
+
+        // 追加问题和回答到对话区域（带完整交互体验）
+        function appendQuestion(question) {
+            const data = testQuestions[question];
+            if (!data) return;
+
+            const chatArea = document.getElementById('chatArea');
+
+            // 1. 先显示用户问题
+            const userMessage = `
+                <div class="message message-user">
+                    <div class="message-content">
+                        <div class="user-bubble">${question}</div>
+                    </div>
+                </div>
+            `;
+            chatArea.insertAdjacentHTML('beforeend', userMessage);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // 2. 创建AI回答的占位容器
+            const aiMessageId = 'ai-message-' + Date.now();
+            const aiMessagePlaceholder = `
+                <div class="message" id="${aiMessageId}">
+                    <div class="message-content">
+                        <div class="thinking-container" id="thinking-${aiMessageId}">
+                            <!-- 思考过程会动态插入这里 -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            chatArea.insertAdjacentHTML('beforeend', aiMessagePlaceholder);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // 3. 开始搜索和生成流程
+            startThinkingProcess(aiMessageId, question, data);
+        }
+
+        // 思考和生成过程
+        async function startThinkingProcess(messageId, question, data) {
+            const thinkingContainer = document.getElementById(`thinking-${messageId}`);
+            const chatArea = document.getElementById('chatArea');
+
+            // 阶段1: 搜索相关资料
+            thinkingContainer.innerHTML = `
+                <div class="thinking-stage active" id="stage-search">
+                    <div class="thinking-icon">
+                        <div class="thinking-spinner"></div>
+                    </div>
+                    <div class="thinking-text">搜索相关资料</div>
+                    <div class="thinking-count">0 / ${data.sources}</div>
+                </div>
+            `;
+
+            // 模拟搜索进度（逐步增加找到的来源数）
+            let foundSources = 0;
+            const searchInterval = setInterval(() => {
+                foundSources += Math.floor(Math.random() * 3) + 1;
+                if (foundSources > data.sources) foundSources = data.sources;
+
+                const countEl = document.querySelector('#stage-search .thinking-count');
+                if (countEl) {
+                    countEl.textContent = `${foundSources} / ${data.sources}`;
+                }
+                chatArea.scrollTop = chatArea.scrollHeight;
+
+                if (foundSources >= data.sources) {
+                    clearInterval(searchInterval);
+                    completeSearchStage();
+                }
+            }, 200);
+
+            // 搜索阶段完成
+            function completeSearchStage() {
+                setTimeout(() => {
+                    const searchStage = document.getElementById('stage-search');
+                    if (searchStage) {
+                        searchStage.classList.remove('active');
+                        searchStage.classList.add('completed');
+                        searchStage.querySelector('.thinking-icon').innerHTML = '<div class="thinking-check">✓</div>';
+                    }
+
+                    // 直接开始生成阶段
+                    setTimeout(() => startGenerateStage(), 300);
+                }, 300);
+            }
+
+            // 阶段2: 生成回答（显示在AI回答框的header中）
+            function startGenerateStage() {
+                // 直接创建AI回答框，header显示"生成最终回答"状态
+                const messageEl = document.getElementById(messageId);
+                if (messageEl) {
+                    messageEl.querySelector('.message-content').innerHTML = `
+                        <div class="ai-response">
+                            <div class="ai-response-header">
+                                <span class="response-time" id="status-${messageId}">
+                                    <span class="thinking-spinner" style="display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: middle;"></span>
+                                    生成最终回答...
+                                </span>
+                                <button class="sources-btn" onclick="toggleDrawer(${data.sources})">
+                                    <span>全部来源</span>
+                                    <span class="sources-count">${data.sources}</span>
+                                </button>
+                            </div>
+                            <div class="ai-text" id="typing-text-${messageId}"></div>
+                            <div class="ai-footer" style="display: none;" id="footer-${messageId}">
+                                <span class="ai-disclaimer">以上内容由AI生成</span>
+                                <div class="ai-actions">
+                                    <button class="ai-action-btn" onclick="copyResponse()">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                        复制
+                                    </button>
+                                    <button class="ai-action-btn" onclick="likeResponse()">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/>
+                                        </svg>
+                                        <span>有用</span>
+                                    </button>
+                                    <button class="ai-action-btn" onclick="dislikeResponse()">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h3a2 2 0 012 2v7a2 2 0 01-2 2h-3"/>
+                                        </svg>
+                                        不满意
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // 短暂延迟后开始打字机效果
+                    setTimeout(() => {
+                        // 开始打字机效果
+                        typewriterEffect(`typing-text-${messageId}`, data.response, messageId, data.time, () => {
+                            // 打字完成后显示底部操作栏
+                            const footer = document.getElementById(`footer-${messageId}`);
+                            if (footer) footer.style.display = 'flex';
+                        });
+
+                        // 更新抽屉内容
+                        updateDrawerContent(question);
+                    }, 200);
+                }
+            }
+        }
+
+        // 打字机效果（优化版本）
+        function typewriterEffect(elementId, htmlContent, messageId, timeSpent, callback) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const chatArea = document.getElementById('chatArea');
+            let currentIndex = 0;
+            const allContent = htmlContent;
+
+            // 添加打字光标
+            element.classList.add('typing-cursor');
+
+            function typeNextChunk() {
+                if (currentIndex < allContent.length) {
+                    // 每次添加更大的内容块，减少DOM操作次数
+                    const chunkSize = Math.floor(Math.random() * 8) + 5; // 5-12个字符
+                    currentIndex = Math.min(currentIndex + chunkSize, allContent.length);
+
+                    element.innerHTML = allContent.slice(0, currentIndex);
+
+                    // 使用requestAnimationFrame优化滚动，减少卡顿
+                    requestAnimationFrame(() => {
+                        chatArea.scrollTop = chatArea.scrollHeight;
+                    });
+
+                    // 继续打字（速度：8-15ms每chunk，更快更流畅）
+                    setTimeout(typeNextChunk, Math.random() * 7 + 8);
+                } else {
+                    // 打字完成
+                    element.classList.remove('typing-cursor');
+                    element.innerHTML = allContent;
+
+                    // 更新header状态为"完成回答，用时X秒"
+                    const statusElement = document.getElementById(`status-${messageId}`);
+                    if (statusElement) {
+                        statusElement.innerHTML = `完成回答，用时 ${timeSpent} 秒`;
+                    }
+
+                    if (callback) callback();
+                }
+            }
+
+            typeNextChunk();
+        }
+        
+        // 交互功能
+        function openArticle(id) {
+            event.stopPropagation();
+            console.log('打开文章:', id);
+            alert('即将打开文章详情页');
+        }
+        
+        function openManual(id) {
+            event.stopPropagation();
+            console.log('打开航海手册:', id);
+            alert('即将打开航海手册');
+        }
+        
+        function openProfile(id) {
+            event.stopPropagation();
+            console.log('打开用户主页:', id);
+            alert('即将打开用户主页');
+        }
+        
+        function followAuthor(id, event) {
+            event.stopPropagation();
+            console.log('关注作者:', id);
+            alert('已关注作者');
+        }
+        
+        function copyResponse() {
+            const aiText = document.querySelector('.ai-text').innerText;
+            navigator.clipboard.writeText(aiText).then(() => {
+                alert('回答已复制到剪贴板');
+            });
+        }
+        
+        function likeResponse() {
+            // 直接更改按钮状态，不弹窗
+            const likeBtn = document.getElementById('likeBtn');
+            const likeBtnText = document.getElementById('likeBtnText');
+            likeBtn.classList.add('liked');
+            likeBtnText.textContent = '已点赞';
+            likeBtn.disabled = true;
+        }
+        
+        function dislikeResponse() {
+            document.getElementById('modalTitle').textContent = '请告诉我们哪里需要改进';
+            document.getElementById('modalDescription').textContent = '您的反馈对我们很重要';
+            document.getElementById('feedbackOptions').style.display = 'block';
+            document.getElementById('feedbackText').style.display = 'block';
+            showFeedback();
+        }
+        
+        function showFeedback() {
+            document.getElementById('modalOverlay').classList.add('show');
+            document.getElementById('feedbackModal').classList.add('show');
+        }
+        
+        function closeFeedback() {
+            document.getElementById('modalOverlay').classList.remove('show');
+            document.getElementById('feedbackModal').classList.remove('show');
+            
+            // 恢复弹窗原始内容
+            setTimeout(() => {
+                document.getElementById('feedbackModal').innerHTML = `
+                    <h3 class="modal-title" id="modalTitle">感谢反馈</h3>
+                    <p class="modal-description" id="modalDescription">您的反馈将帮助我们改进AI回答的质量</p>
+                    <div class="feedback-options" id="feedbackOptions" style="display: none;">
+                        <div class="feedback-option">
+                            <input type="checkbox" id="irrelevant" name="feedback">
+                            <label for="irrelevant">与问题无关</label>
+                        </div>
+                        <div class="feedback-option">
+                            <input type="checkbox" id="incorrect" name="feedback">
+                            <label for="incorrect">信息有误</label>
+                        </div>
+                        <div class="feedback-option">
+                            <input type="checkbox" id="unclear" name="feedback">
+                            <label for="unclear">不易理解</label>
+                        </div>
+                        <div class="feedback-option">
+                            <input type="checkbox" id="other" name="feedback">
+                            <label for="other">其他原因</label>
+                        </div>
+                    </div>
+                    <textarea class="feedback-textarea" id="feedbackText" placeholder="请详细描述您的问题或建议（选填）" style="display: none;"></textarea>
+                    <div class="modal-actions">
+                        <button class="modal-btn modal-btn-cancel" onclick="closeFeedback()">取消</button>
+                        <button class="modal-btn modal-btn-submit" onclick="submitFeedback()">提交</button>
+                    </div>
+                `;
+            }, 300);
+        }
+        
+        function submitFeedback() {
+            // 收集反馈数据
+            const feedback = {
+                irrelevant: document.getElementById('irrelevant')?.checked,
+                incorrect: document.getElementById('incorrect')?.checked,
+                unclear: document.getElementById('unclear')?.checked,
+                other: document.getElementById('other')?.checked,
+                text: document.getElementById('feedbackText')?.value
+            };
+            
+            console.log('用户反馈:', feedback);
+            
+            // 显示成功反馈
+            document.getElementById('feedbackModal').innerHTML = `
+                <div class="feedback-success">
+                    <div class="success-icon">✓</div>
+                    <h3 style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">
+                        反馈已收到
+                    </h3>
+                    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
+                        感谢您的反馈，我们会不断改进
+                    </p>
+                    <button class="modal-btn modal-btn-submit" onclick="closeFeedback()">确定</button>
+                </div>
+            `;
+            
+            // 2秒后自动关闭
+            setTimeout(() => {
+                closeFeedback();
+            }, 2000);
+        }
+        
+        // 点击外部关闭抽屉
+        document.addEventListener('click', function(e) {
+            const drawer = document.getElementById('referenceDrawer');
+            const sourcesBtn = document.querySelector('.sources-btn');
+            
+            if (drawer && drawer.classList.contains('open') && 
+                !drawer.contains(e.target) && 
+                (!sourcesBtn || !sourcesBtn.contains(e.target))) {
+                drawer.classList.remove('open');
+            }
+        });
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initHistory();
+            loadConversation(1); // 加载第一个对话
+            
+            // 支持回车发送
+            document.getElementById('questionInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendQuestion();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
